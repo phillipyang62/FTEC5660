@@ -50,4 +50,5 @@ homework runner.
 
 ## Homework 1 solution: 
 > to students: please fill your solution description here.
-
+First using prompts like extraction_chain and prompt_transform to convert images into JSON foramt. Second invoke deepseek model by input prompts and pictures. The output of llm will be restored in a [] object after parsered. Last thing is design a caculate to sum final result from result[] object. Use to_float function to avoid error. 
+chain_design.png is attached to the root folder.

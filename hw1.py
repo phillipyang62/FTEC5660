@@ -63,7 +63,56 @@ def build_chain() -> Any:
     ``deepseek-v4-flash-vision-exp``. The API key is loaded from .env.
     """
     ### YOUR CODE HERE
-    return None
+    from langchain_core.prompts import ChatPromptTemplate
+    from langchain_core.output_parsers import StrOutputParser
+    from langchain_deepseek import ChatDeepSeek
+
+    llm = ChatDeepSeek(
+        model="deepseek-v4-flash-vision-exp",
+        temperature=0,
+    )
+    prompt_extract = ChatPromptTemplate.from_messages([
+    ("system", "你是一个收据信息抽取助手。只输出要求的字段，不要解释。"),
+    ("human", [
+        {"type": "text", "text": (
+            "请从这张收据中提取以下四个字段，每个字段必须是单个数字（不要列表、不要多值、不要文字）：\n"
+            "1. amount_paid_after_rounding：收据 ROUNDING 之后的最终付款金额。\n"
+            "2. subtotal_after_discounts_before_rounding：收据上的 SUBTOTAL。\n"
+            "3. discount_total：该收据所有折扣/促销/优惠券/会员/app/百分比折扣行的金额之【和】，"
+            "以正数表示。例如有 '-5.39' 和 '-2.00' 两条折扣，discount_total 应为 7.39。\n"
+            "4. amount_without_discounts：subtotal_after_discounts_before_rounding 加上 discount_total。\n"
+            "文件名：{text_input}"
+        )},
+        {"type": "image_url", "image_url": {"url": "{image_url}"}},
+        ]),
+    ])
+
+    prompt_transform = ChatPromptTemplate.from_template(
+    "将以下内容转换为一个 JSON 对象，key 为 "
+    "'amount_paid_after_rounding','subtotal_after_discounts_before_rounding',"
+    "'discount_total','amount_without_discounts'。"
+    "每个 value 必须是单个数字（不要列表、不要字符串、不要多个数字），"
+    "只输出 JSON，不要解释：\n\n{specifications}"
+    )
+
+    extraction_chain = prompt_extract | llm | StrOutputParser()
+
+    full_chain = (
+        {"specifications": extraction_chain}
+        | prompt_transform
+        | llm
+        | StrOutputParser()
+    )
+
+    
+
+    ###编辑计算规则来把标准格式的文件进行运算，得到打折后总价，以及打折前总价。
+    ###规则就是每个.jpg文件对应字段的第一个元素（amount_paid_after_rounding）加总和（amount_without_discounts）的加总
+
+    ###讲结果替换到json里，输出json
+    ### YOUR CODE HERE
+
+    return full_chain
 
 
 def answer_queries(chain: Any, images: list[Path]) -> dict[str, Any]:
@@ -79,8 +128,44 @@ def answer_queries(chain: Any, images: list[Path]) -> dict[str, Any]:
     to process independent receipt-extraction prompts in parallel.
     """
     ### YOUR CODE HERE
+    import json
+    import re
+    def _to_float(value) -> float:
+        s = re.sub(r"[^0-9.\-]", "", str(value))
+        if s in ("", "-", ".", "-."):
+            raise ValueError(f"无法解析金额: {value!r}")
+        return float(s)
+
+    results = []
+    for path in images:
+        out = chain.invoke({
+            "text_input": path.name,          
+            "image_url": image_data_url(path), 
+        })
+        results.append(out)
+
+    total_paid = 0.0
+    total_without_discount = 0.0
+
+
+    for out in results: ###文本清洗
+        text = out.strip()
+        if text.startswith("```"):
+            text = text.strip("`")
+            if text.lower().startswith("json"):
+                text = text[4:]
+            text = text.strip()
+
+        data = json.loads(text)
+        print("DEBUG:", path.name, "->", data) 
+        total_paid += _to_float(data["amount_paid_after_rounding"])
+        total_without_discount += (_to_float(data["subtotal_after_discounts_before_rounding"])+ _to_float(data["discount_total"]))
+
+    response_1 = f"HK${total_paid:.2f}"
+    response_2 = f"HK${total_without_discount:.2f}"
+    ### YOUR CODE HERE
     _ = (chain, images)
-    return {QUERY_1: DUMMY_RESPONSE, QUERY_2: DUMMY_RESPONSE}
+    return {QUERY_1: response_1, QUERY_2: response_2}
 
 
 # Everything below is provided runner/scoring code. No edits are needed.
