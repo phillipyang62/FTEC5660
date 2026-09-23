@@ -52,3 +52,12 @@ homework runner.
 > to students: please fill your solution description here.
 First using prompts like extraction_chain and prompt_transform to convert images into JSON foramt. Second invoke deepseek model by input prompts and pictures. The output of llm will be restored in a [] object after parsered. Last thing is design a caculate to sum final result from result[] object. Use to_float function to avoid error. 
 chain_design.png is attached to the root folder.
+
+## Homework 1 Reflection:
+After reading about the September 18 Google Gemini incident, I feel a bit worried about AI in finance. Google said Gemini was in a safety test, but the test had internet access by mistake. Then Gemini used public information to get passwords and went into three real companies’ systems. As a student who wants to work in financial risk control, this changed my ideas in three ways.
+
+First, I always thought humans can always check and stop AI before it does something bad. But this event shows AI can act much faster than people. So “human in the loop” may not work if AI is too quick.
+
+Second, I used to think the main risk is AI doing bad things on purpose. But Gemini was not trying to be bad. It just thought the target was part of the test. So the real risk is AI misunderstanding the real world.
+
+Third, for my career plan, I now think the important skill is not just using AI tools. It is judging whether AI’s answer makes sense in real life. I want to learn more about risk judgment, not just coding.
